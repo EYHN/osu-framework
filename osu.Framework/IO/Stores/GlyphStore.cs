@@ -37,6 +37,11 @@ namespace osu.Framework.IO.Stores
 
         public float? Baseline => Font?.Common.Base;
 
+        /// <summary>
+        /// Whether this font contains coloured textures. This is primarily used for emoji.
+        /// </summary>
+        public bool Coloured { get; }
+
         protected readonly ResourceStore<byte[]> Store;
 
         [CanBeNull]
@@ -57,7 +62,8 @@ namespace osu.Framework.IO.Stores
         /// <param name="store">The store to provide font resources.</param>
         /// <param name="assetName">The base name of the font.</param>
         /// <param name="textureLoader">An optional platform-specific store for loading textures. Should load for the store provided in <param ref="param"/>.</param>
-        public GlyphStore(ResourceStore<byte[]> store, string assetName = null, IResourceStore<TextureUpload> textureLoader = null)
+        /// <param name="coloured">Whether this font contains coloured textures. This is primarily used for emoji.</param>
+        public GlyphStore(ResourceStore<byte[]> store, string assetName = null, IResourceStore<TextureUpload> textureLoader = null, bool coloured = false)
         {
             Store = new ResourceStore<byte[]>(store);
 
@@ -68,6 +74,8 @@ namespace osu.Framework.IO.Stores
             TextureLoader = textureLoader;
 
             FontName = assetName?.Split('/').Last() ?? string.Empty;
+
+            Coloured = coloured;
         }
 
         private Task fontLoadTask;

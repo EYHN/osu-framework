@@ -18,6 +18,7 @@ namespace osu.Framework.Text
         public readonly float XAdvance => (fixedWidth ?? Glyph.XAdvance) * textSize;
         public readonly float Width => Glyph.Width * textSize;
         public readonly Rune Character => Glyph.Character;
+        public readonly bool Coloured => Glyph.Coloured;
 
         public readonly float YOffset
         {
