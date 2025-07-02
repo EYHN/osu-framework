@@ -260,7 +260,7 @@ namespace osu.Framework
         /// <param name="target">An optional target store to add the font to. If not specified, <see cref="Fonts"/> is used.</param>
         /// <param name="coloured">Whether the font is coloured (typically used for emoji fonts).</param>
         public void AddFont(ResourceStore<byte[]> store, string assetName = null, bool coloured = false, FontStore target = null)
-            => addFont(target ?? Fonts, store, assetName);
+            => addFont(target ?? Fonts, store, assetName, coloured);
 
         private void addFont(FontStore target, ResourceStore<byte[]> store, string assetName = null, bool coloured = false)
             => target.AddTextureSource(new RawCachingGlyphStore(store, assetName, Host.CreateTextureLoaderStore(store), coloured: coloured));

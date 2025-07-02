@@ -70,7 +70,7 @@ namespace osu.Framework.Text
 
         public int PageCount => fontInfo.Pages?.Length ?? 0;
 
-        public int FontSize => 50;
+        public int FontSize => fontInfo.Info?.Size ?? 100;
 
         public bool HasCharacter(Grapheme character)
         {
@@ -140,6 +140,8 @@ namespace osu.Framework.Text
         public class InfoData
         {
             public string? Face { get; set; }
+
+            public int Size { get; set; }
         }
 
         public class CommonData

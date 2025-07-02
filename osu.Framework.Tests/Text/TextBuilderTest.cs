@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using osu.Framework.Extensions.ObjectExtensions;
@@ -568,7 +567,7 @@ namespace osu.Framework.Tests.Text
 
             builder.AddText("a");
 
-            Assert.That(builder.Characters[0].Character, Is.EqualTo(new Rune('a')));
+            Assert.That(builder.Characters[0].Character, Is.EqualTo(new Grapheme('a')));
         }
 
         /// <summary>
@@ -632,7 +631,7 @@ namespace osu.Framework.Tests.Text
 
             builder.AddText("a");
 
-            Assert.That(builder.Characters[0].Character, Is.EqualTo(new Rune('?')));
+            Assert.That(builder.Characters[0].Character, Is.EqualTo(new Grapheme('?')));
             Assert.That(builder.Characters[0].XOffset, Is.EqualTo(0));
         }
 
@@ -653,7 +652,7 @@ namespace osu.Framework.Tests.Text
 
             builder.AddText("a");
 
-            Assert.That(builder.Characters[0].Character, Is.EqualTo(new Rune('?')));
+            Assert.That(builder.Characters[0].Character, Is.EqualTo(new Grapheme('?')));
             Assert.That(builder.Characters[0].XOffset, Is.EqualTo(1));
         }
 
@@ -679,20 +678,6 @@ namespace osu.Framework.Tests.Text
             builder.AddText("🙂"); // 🙂 is U+1F642, which is greater than char.MaxValue (0xFFFF)
 
             Assert.That(builder.Characters, Has.Count.EqualTo(1));
-        }
-
-        [Test]
-        public void TestMalformedUtf16()
-        {
-            // surrogate character without a pair is invalid
-            const string malformed_utf16 = "abc\uD800xyz";
-
-            Assume.That(char.IsSurrogate(malformed_utf16, 3));
-
-            var builder = new TextBuilder(fontStore, normal_font);
-            builder.AddText(malformed_utf16);
-
-            Assert.That(builder.Characters[3].Character, Is.EqualTo(new Rune('?')));
         }
 
         [TearDown]

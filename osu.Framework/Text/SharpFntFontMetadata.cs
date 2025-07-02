@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using osu.Framework.Extensions;
 using SharpFNT;
 
 namespace osu.Framework.Text
@@ -62,8 +61,13 @@ namespace osu.Framework.Text
                 return null;
             }
 
-            var sharpFntCharacter = Font.GetCharacter((Rune)character);
-            return sharpFntCharacter != null ? new SharpFntCharacterMetadata(sharpFntCharacter) : null;
+            if (Font.Characters == null)
+                return null;
+
+            if (Font.Characters.TryGetValue(((Rune)character).Value, out var result))
+                return new SharpFntCharacterMetadata(result);
+
+            return null;
         }
 
         public string? GetPageFilename(int page) => Font.Pages[page];
