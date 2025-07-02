@@ -39,9 +39,9 @@ namespace osu.Framework.Tests.Text
             fontStore.AddTextureSource(new GlyphStore(new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources"), "Fonts/Roboto/Roboto-Regular"));
             fontStore.AddTextureSource(new GlyphStore(new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources"), "Fonts/FontAwesome5/FontAwesome-Solid"));
 
-            glyphA = fontStore.Get(null, new Rune('a')).AsNonNull();
-            glyphB = fontStore.Get(null, new Rune('b')).AsNonNull();
-            glyphM = fontStore.Get(null, new Rune('m')).AsNonNull();
+            glyphA = fontStore.Get(null, 'a').AsNonNull();
+            glyphB = fontStore.Get(null, 'b').AsNonNull();
+            glyphM = fontStore.Get(null, 'm').AsNonNull();
             glyphIcon = fontStore.Get(null, FontAwesome.Solid.Smile.Icon).AsNonNull();
         }
 
@@ -205,8 +205,8 @@ namespace osu.Framework.Tests.Text
         {
             var builder = new TextBuilder(fontStore, normal_font, useFontSizeAsHeight: false);
 
-            var glyphQ = fontStore.Get(normal_font.FontName, new Rune('q')).AsNonNull();
-            var glyphP = fontStore.Get(normal_font.FontName, new Rune('P')).AsNonNull();
+            var glyphQ = fontStore.Get(normal_font.FontName, 'q').AsNonNull();
+            var glyphP = fontStore.Get(normal_font.FontName, 'P').AsNonNull();
 
             builder.AddText("q");
             Assert.That(builder.Characters[0].DrawRectangle.Top, Is.EqualTo(0));
@@ -475,8 +475,8 @@ namespace osu.Framework.Tests.Text
         {
             var builder = new TextBuilder(fontStore, normal_font, useFontSizeAsHeight: false);
 
-            var glyphQ = fontStore.Get(normal_font.FontName, new Rune('q')).AsNonNull();
-            var glyphP = fontStore.Get(normal_font.FontName, new Rune('P')).AsNonNull();
+            var glyphQ = fontStore.Get(normal_font.FontName, 'q').AsNonNull();
+            var glyphP = fontStore.Get(normal_font.FontName, 'P').AsNonNull();
 
             builder.AddText("qP");
             builder.AddNewLine();
@@ -717,7 +717,7 @@ namespace osu.Framework.Tests.Text
                 this.glyphs = glyphs;
             }
 
-            public ITexturedCharacterGlyph Get(string? fontName, Rune character)
+            public ITexturedCharacterGlyph Get(string? fontName, Grapheme character)
             {
                 if (string.IsNullOrEmpty(fontName))
                     return glyphs.FirstOrDefault(g => g.Glyph.Character == character).Glyph;
@@ -725,7 +725,7 @@ namespace osu.Framework.Tests.Text
                 return glyphs.FirstOrDefault(g => g.Font.FontName.EndsWith(fontName, StringComparison.Ordinal) && g.Glyph.Character == character).Glyph;
             }
 
-            public Task<ITexturedCharacterGlyph> GetAsync(string fontName, Rune character) => throw new NotImplementedException();
+            public Task<ITexturedCharacterGlyph?> GetAsync(string fontName, Grapheme character) => throw new NotImplementedException();
         }
 
         private readonly struct GlyphEntry
@@ -749,21 +749,23 @@ namespace osu.Framework.Tests.Text
             public float Width { get; }
             public float Baseline { get; }
             public float Height { get; }
+            public Grapheme Character { get; }
             public string? FontName { get; }
-            public Rune Character { get; }
+            public bool Coloured => false;
 
             private readonly float glyphKerning;
 
             public TestGlyph(char character, float xOffset = 0, float yOffset = 0, float xAdvance = 0, float width = 0, float baseline = 0, float height = 0, float kerning = 0, string? fontName = null)
             {
                 glyphKerning = kerning;
-                Character = new Rune(character);
+                Character = new Grapheme(character);
                 XOffset = xOffset;
                 YOffset = yOffset;
                 XAdvance = xAdvance;
                 Width = width;
                 Baseline = baseline;
                 Height = height;
+                FontName = fontName;
             }
 
             public float GetKerning<T>(T lastGlyph)

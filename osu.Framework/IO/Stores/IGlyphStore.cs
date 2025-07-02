@@ -1,7 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Text;
 using System.Threading.Tasks;
 using osu.Framework.Text;
 
@@ -23,6 +22,12 @@ namespace osu.Framework.IO.Stores
         float? Baseline { get; }
 
         /// <summary>
+        /// The font's size in pixels, obtained from <see cref="IFontMetadata.FontSize"/>.
+        /// This only describes the size of the font bitmap and texture, and does not affect the layout or positioning of text.
+        /// </summary>
+        int FontSize { get; }
+
+        /// <summary>
         /// Whether this font store preserves color information from the original font textures.
         /// </summary>
         bool Coloured { get; }
@@ -35,14 +40,14 @@ namespace osu.Framework.IO.Stores
         /// <summary>
         /// Whether a glyph exists for the specified character in this store.
         /// </summary>
-        bool HasGlyph(Rune c);
+        bool HasGlyph(Grapheme c);
 
         /// <summary>
         /// Retrieves a <see cref="CharacterGlyph"/> that contains associated spacing information for a character.
         /// </summary>
         /// <param name="character">The character to retrieve the <see cref="CharacterGlyph"/> for.</param>
         /// <returns>The <see cref="CharacterGlyph"/> containing associated spacing information for <paramref name="character"/>.</returns>
-        CharacterGlyph? Get(Rune character);
+        CharacterGlyph? Get(Grapheme character);
 
         /// <summary>
         /// Retrieves the kerning for a pair of characters.
@@ -50,6 +55,6 @@ namespace osu.Framework.IO.Stores
         /// <param name="left">The character to the left.</param>
         /// <param name="right">The character to the right.</param>
         /// <returns>The kerning.</returns>
-        int GetKerning(Rune left, Rune right);
+        int GetKerning(Grapheme left, Grapheme right);
     }
 }

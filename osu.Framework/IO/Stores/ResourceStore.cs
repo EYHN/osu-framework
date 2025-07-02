@@ -127,6 +127,12 @@ namespace osu.Framework.IO.Stores
 
         public Stream GetStream(string name)
         {
+            return GetStream(name, out _);
+        }
+
+        public Stream GetStream(string name, out string filename)
+        {
+            filename = "";
             if (name == null)
                 return null;
 
@@ -137,8 +143,12 @@ namespace osu.Framework.IO.Stores
                 foreach (string f in filenames)
                 {
                     var result = store.GetStream(f);
+
                     if (result != null)
+                    {
+                        filename = f;
                         return result;
+                    }
                 }
             }
 

@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -35,7 +34,9 @@ namespace osu.Framework.IO.Stores
 
         public string FontName { get; }
 
-        public float? Baseline => Font?.Common.Base;
+        public float? Baseline => FontMetadata?.Base;
+
+        public int FontSize => FontMetadata?.FontSize ?? 100;
 
         /// <summary>
         /// Whether this font contains coloured textures. This is primarily used for emoji.
@@ -44,17 +45,23 @@ namespace osu.Framework.IO.Stores
 
         protected readonly ResourceStore<byte[]> Store;
 
-        [CanBeNull]
-        protected BitmapFont Font => completionSource.Task.GetResultSafely();
+        /// <summary>
+        /// The folder name containing the font files.
+        /// This is used as the base path for loading font page textures and resources.
+        /// </summary>
+        protected readonly string AssetFolderName;
 
-        private readonly TaskCompletionSource<BitmapFont> completionSource = new TaskCompletionSource<BitmapFont>();
+        [CanBeNull]
+        protected IFontMetadata FontMetadata => completionSource.Task.GetResultSafely();
+
+        private readonly TaskCompletionSource<IFontMetadata> completionSource = new TaskCompletionSource<IFontMetadata>();
 
         /// <summary>
         /// This is a rare usage of a static framework-wide cache.
         /// In normal execution font instances are held locally by font stores and this will add no overhead or improvement.
         /// It exists specifically to avoid overheads of parsing fonts repeatedly in unit tests.
         /// </summary>
-        private static readonly ConcurrentDictionary<string, BitmapFont> font_cache = new ConcurrentDictionary<string, BitmapFont>();
+        private static readonly ConcurrentDictionary<string, IFontMetadata> font_cache = new ConcurrentDictionary<string, IFontMetadata>();
 
         /// <summary>
         /// Create a new glyph store.
@@ -67,10 +74,15 @@ namespace osu.Framework.IO.Stores
         {
             Store = new ResourceStore<byte[]>(store);
 
+            // Add supported font file extensions
+            // <see cref="SharpFntFontMetadata"/>
             Store.AddExtension("fnt");
             Store.AddExtension("bin");
+            // <see cref="JsonFontMetadata"/>
+            Store.AddExtension("json");
 
             AssetName = assetName;
+            AssetFolderName = assetName?[..assetName.LastIndexOf('/')];
             TextureLoader = textureLoader;
 
             FontName = assetName?.Split('/').Last() ?? string.Empty;
@@ -84,23 +96,23 @@ namespace osu.Framework.IO.Stores
         {
             try
             {
-                BitmapFont font;
+                IFontMetadata fontMetadata;
 
-                using (var s = Store.GetStream($@"{AssetName}"))
+                using (var s = Store.GetStream($@"{AssetName}", out string filename))
                 {
                     string hash = s.ComputeMD5Hash();
 
-                    if (font_cache.TryGetValue(hash, out font))
+                    if (font_cache.TryGetValue(hash, out fontMetadata))
                     {
                         Logger.Log($"Cached font load for {AssetName}");
                     }
                     else
                     {
-                        font_cache.TryAdd(hash, font = BitmapFont.FromStream(s, FormatHint.Binary, false));
+                        font_cache.TryAdd(hash, fontMetadata = CreateFontMetadataFromStream(s, filename));
                     }
                 }
 
-                completionSource.SetResult(font);
+                completionSource.SetResult(fontMetadata);
             }
             catch (Exception ex)
             {
@@ -110,7 +122,27 @@ namespace osu.Framework.IO.Stores
             }
         }, TaskCreationOptions.PreferFairness);
 
-        public bool HasGlyph(Rune c) => Font?.Characters.ContainsKey(c.Value) == true;
+        /// <summary>
+        /// Loads the font metadata from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing the font metadata.</param>
+        /// <param name="filename">The filename of the font metadata.</param>
+        protected virtual IFontMetadata CreateFontMetadataFromStream(Stream stream, string filename)
+        {
+            if (filename.EndsWith(".fnt", StringComparison.Ordinal) || filename.EndsWith(".bin", StringComparison.Ordinal))
+            {
+                return SharpFntFontMetadata.FromStream(stream, FormatHint.Binary, false);
+            }
+
+            if (filename.EndsWith(".json", StringComparison.Ordinal))
+            {
+                return JsonFontMetadata.FromStream(stream);
+            }
+
+            throw new NotSupportedException($"Unsupported font format: {filename}");
+        }
+
+        public bool HasGlyph(Grapheme c) => FontMetadata?.HasCharacter(c) == true;
 
         protected virtual TextureUpload GetPageImage(int page)
         {
@@ -123,58 +155,75 @@ namespace osu.Framework.IO.Stores
 
         protected string GetFilenameForPage(int page)
         {
-            Debug.Assert(Font != null);
-            return $@"{AssetName}_{page.ToString().PadLeft((Font.Pages.Count - 1).ToString().Length, '0')}.png";
+            Debug.Assert(FontMetadata != null);
+            return $@"{AssetFolderName}/{FontMetadata.GetPageFilename(page)}";
         }
 
-        public CharacterGlyph Get(Rune character)
+        public CharacterGlyph Get(Grapheme character)
         {
-            if (Font == null)
+            if (FontMetadata == null)
                 return null;
 
             Debug.Assert(Baseline != null);
 
-            var bmCharacter = Font.GetCharacter(character);
+            var characterMetadata = FontMetadata.GetCharacter(character);
 
-            Debug.Assert(bmCharacter != null);
+            Debug.Assert(characterMetadata != null);
 
-            return new CharacterGlyph(character, bmCharacter.XOffset, bmCharacter.YOffset, bmCharacter.XAdvance, Baseline.Value, this);
+            return new CharacterGlyph(character, characterMetadata.XOffset, characterMetadata.YOffset, characterMetadata.XAdvance, Baseline.Value, this);
         }
 
-        public int GetKerning(Rune left, Rune right) => Font?.GetKerningAmount(left, right) ?? 0;
+        /// <summary>
+        /// This is a convenience method that converts the character to a <see cref="Grapheme"/> and calls <see cref="Get(Grapheme)"/>.
+        /// </summary>
+        /// <param name="character">The character to retrieve.</param>
+        public CharacterGlyph Get(char character)
+        {
+            return Get(new Grapheme(character));
+        }
+
+        public int GetKerning(Grapheme left, Grapheme right) => FontMetadata?.GetKerningAmount(left, right) ?? 0;
 
         Task<CharacterGlyph> IResourceStore<CharacterGlyph>.GetAsync(string name, CancellationToken cancellationToken) =>
-            Task.Run(() => ((IGlyphStore)this).Get(Rune.GetRuneAt(name, 0)), cancellationToken);
+            Task.Run(() => ((IGlyphStore)this).Get(new Grapheme(name)), cancellationToken);
 
-        CharacterGlyph IResourceStore<CharacterGlyph>.Get(string name) => Get(Rune.GetRuneAt(name, 0));
+        CharacterGlyph IResourceStore<CharacterGlyph>.Get(string name) => Get(new Grapheme(name));
 
         public TextureUpload Get(string name)
         {
-            if (Font == null) return null;
+            if (FontMetadata == null) return null;
 
-            // name is expected to be in the format "{Rune}" or "{FontName}/{Rune}" where {Rune} is UTF-16 sequence of 1 or 2 `char`s.
-            // Length > 2 is just a shorthand to check if there is a font name in the lookup
-            if (name.Length > 2 && !name.StartsWith($@"{FontName}/", StringComparison.Ordinal))
-                return null;
+            Grapheme grapheme;
 
-            Rune.DecodeLastFromUtf16(name, out var rune, out int _);
-            return Font.Characters.TryGetValue(rune.Value, out Character c) ? LoadCharacter(c) : null;
+            // name is expected to be in the format "{Grapheme}" or "Font:{FontName}/{Grapheme}"
+            // this is a shorthand to check if there is a font name in the lookup
+            if (name.StartsWith("Font:", StringComparison.Ordinal))
+            {
+                // if FontName does not match, return null.
+                if (!name.StartsWith($@"Font:{FontName}/", StringComparison.Ordinal))
+                    return null;
+
+                grapheme = new Grapheme(name.AsSpan(FontName.Length + 6));
+            }
+            else
+            {
+                grapheme = new Grapheme(name);
+            }
+
+            var characterMetadata = FontMetadata.GetCharacter(grapheme);
+            return characterMetadata != null ? LoadCharacter(characterMetadata) : null;
         }
 
         public virtual async Task<TextureUpload> GetAsync(string name, CancellationToken cancellationToken = default)
         {
-            if (name.Length > 2 && !name.StartsWith($@"{FontName}/", StringComparison.Ordinal))
-                return null;
+            await completionSource.Task.ConfigureAwait(false);
 
-            var bmFont = await completionSource.Task.ConfigureAwait(false);
-
-            Rune.DecodeLastFromUtf16(name, out var rune, out int _);
-            return bmFont.Characters.TryGetValue(rune.Value, out Character c) ? LoadCharacter(c) : null;
+            return Get(name);
         }
 
         protected int LoadedGlyphCount;
 
-        protected virtual TextureUpload LoadCharacter(Character character)
+        protected virtual TextureUpload LoadCharacter(IFontMetadata.ICharacterMetadata character)
         {
             var page = GetPageImage(character.Page);
             LoadedGlyphCount++;
@@ -200,7 +249,7 @@ namespace osu.Framework.IO.Stores
 
         public Stream GetStream(string name) => throw new NotSupportedException();
 
-        public IEnumerable<string> GetAvailableResources() => Font?.Characters.Keys.Select(k => $"{FontName}/{(char)k}") ?? Enumerable.Empty<string>();
+        public IEnumerable<string> GetAvailableResources() => FontMetadata?.GetAvailableCharacters().Select(k => $"Font:{FontName}/{k}") ?? Enumerable.Empty<string>();
 
         #region IDisposable Support
 

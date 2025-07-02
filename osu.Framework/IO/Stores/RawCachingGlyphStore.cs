@@ -12,7 +12,7 @@ using osu.Framework.Extensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
-using SharpFNT;
+using osu.Framework.Text;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -42,7 +42,7 @@ namespace osu.Framework.IO.Stores
         {
         }
 
-        protected override TextureUpload LoadCharacter(Character character)
+        protected override TextureUpload LoadCharacter(IFontMetadata.ICharacterMetadata character)
         {
             if (CacheStorage == null)
                 throw new InvalidOperationException($"{nameof(CacheStorage)} should be set before requesting characters.");
@@ -154,7 +154,7 @@ namespace osu.Framework.IO.Stores
             }
         }
 
-        private TextureUpload createTextureUpload(Character character, PageInfo page)
+        private TextureUpload createTextureUpload(IFontMetadata.ICharacterMetadata character, PageInfo page)
         {
             Debug.Assert(CacheStorage != null);
 
