@@ -36,8 +36,6 @@ namespace osu.Framework.IO.Stores
 
         public float? Baseline => FontMetadata?.Base;
 
-        public int FontSize => FontMetadata?.FontSize ?? 100;
-
         /// <summary>
         /// Whether this font contains coloured textures. This is primarily used for emoji.
         /// </summary>
@@ -82,7 +80,7 @@ namespace osu.Framework.IO.Stores
             Store.AddExtension("json");
 
             AssetName = assetName;
-            AssetFolderName = assetName?[..assetName.LastIndexOf('/')];
+            AssetFolderName = assetName != null && assetName.Contains('/') ? assetName[..assetName.LastIndexOf('/')] : "";
             TextureLoader = textureLoader;
 
             FontName = assetName?.Split('/').Last() ?? string.Empty;
@@ -156,7 +154,9 @@ namespace osu.Framework.IO.Stores
         protected string GetFilenameForPage(int page)
         {
             Debug.Assert(FontMetadata != null);
-            return $@"{AssetFolderName}/{FontMetadata.GetPageFilename(page)}";
+            return string.IsNullOrEmpty(AssetFolderName)
+                ? FontMetadata.GetPageFilename(page)
+                : $@"{AssetFolderName}/{FontMetadata.GetPageFilename(page)}";
         }
 
         public CharacterGlyph Get(Grapheme character)

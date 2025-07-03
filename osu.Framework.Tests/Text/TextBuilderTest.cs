@@ -588,7 +588,7 @@ namespace osu.Framework.Tests.Text
 
             builder.AddText("a");
 
-            Assert.That(builder.Characters[0].Character, Is.EqualTo('a'));
+            Assert.That(builder.Characters[0].Character.CharValue, Is.EqualTo('a'));
             Assert.That(((TestGlyph)builder.Characters[0].Glyph).FontName, Is.EqualTo("test2-Bold"));
         }
 
@@ -610,7 +610,7 @@ namespace osu.Framework.Tests.Text
 
             builder.AddText("a");
 
-            Assert.That(builder.Characters[0].Character, Is.EqualTo('a'));
+            Assert.That(builder.Characters[0].Character.CharValue, Is.EqualTo('a'));
             Assert.That(((TestGlyph)builder.Characters[0].Glyph).FontName, Is.EqualTo("test2-Italic"));
         }
 
@@ -740,7 +740,8 @@ namespace osu.Framework.Tests.Text
 
             private readonly float glyphKerning;
 
-            public TestGlyph(char character, float xOffset = 0, float yOffset = 0, float xAdvance = 0, float width = 0, float baseline = 0, float height = 0, float kerning = 0, string? fontName = null)
+            public TestGlyph(char character, float xOffset = 0, float yOffset = 0, float xAdvance = 0, float width = 0, float baseline = 0, float height = 0, float kerning = 0,
+                             string? fontName = null)
             {
                 glyphKerning = kerning;
                 Character = new Grapheme(character);

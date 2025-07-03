@@ -22,12 +22,6 @@ namespace osu.Framework.IO.Stores
         float? Baseline { get; }
 
         /// <summary>
-        /// The font's size in pixels, obtained from <see cref="IFontMetadata.FontSize"/>.
-        /// This only describes the size of the font bitmap and texture, and does not affect the layout or positioning of text.
-        /// </summary>
-        int FontSize { get; }
-
-        /// <summary>
         /// Whether this font store preserves color information from the original font textures.
         /// </summary>
         bool Coloured { get; }
